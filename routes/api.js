@@ -1,6 +1,6 @@
 //Creates Requirement packages for the script
 const express = require ('express')
-const router = requre.Router()
+const router = express.Router()
 
 
 //Imports postgreSQL connection pool to reach db
@@ -79,7 +79,7 @@ router.put('/:id', async (req, res) => {
 
         const result = await pool.query(
             'UPDATE items SET title = $1, description = $2, category = $3 WHERE id = $4 RETURNING *',
-            [title.trim(), description || null, category || null]
+            [title.trim(), description || null, category || null, req.params.id]
         )
         res.status(200).json({data: result.rows[0]})
     }
