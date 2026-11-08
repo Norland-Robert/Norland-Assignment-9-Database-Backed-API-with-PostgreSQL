@@ -1,0 +1,21 @@
+{
+  "name": "norland_assignment9_database-backed-api-with-postgresql",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Norland-Robert/Norland-Assignment-9-Database-Backed-API-with-PostgreSQL.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Norland-Robert/Norland-Assignment-9-Database-Backed-API-with-PostgreSQL/issues"
+  },
+  "homepage": "https://github.com/Norland-Robert/Norland-Assignment-9-Database-Backed-API-with-PostgreSQL#readme"
+}
