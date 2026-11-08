@@ -1,103 +1,113 @@
-const express = require("express")
-const router = express.Router()
+//Creates Requirement packages for the script
+const express = require ('express')
+const router = requre.Router()
 
-//Creates a memory array to store data
-let resources = []
 
-//A GET request to get data from the memory array
-router.get('/', (req, res) => {
-    res.status(200).json({data: resources})
+//Imports postgreSQL connection pool to reach db
+const pool = require('../db')
+
+//GET request to get items from the database
+router.get('/', async (req, res) => {
+    try{
+        const result = await pool.query(
+            //Displays infomration results in descending order based on the time it was created
+            'SELECT * FROM items ORDER BY created_at DESC'
+        )
+        //Response code and displays information sorted into rows
+        res.status(200).json({data: result.rows})
+    }
+    //Error handling
+    catch (error) {
+        console.error(error)
+        res.status(500).json({ error: 'Could Not Retrieve Items form Database'})
+    }
 })
 
-// GET Request to retrieve one resource from the array by id
-router.get('/:id', (req, res) => {
-
-    //Sets the targetID to be retrieved
-    const targetID = req.params.id
-
-    //Searches the array to see if a value exists in that location
-    const match = resources.find(item => item.id === targetID)
-
-    //Conditional Check in the event match is false for finding the requested id
-    if (!match) {
-        return res.status(404).json({
-            error: "Requested Resource Not Found"
-        })
+//GET items by its ID
+router.get('/:id', async (req, res) =>{
+    try{
+        const result = await pool.query(
+            'SELECT * FROM items WHERE id = $1',
+            [req.params.id]
+        )
+        //Error if the element doesnt exist
+        if (result.rows.length === 0){
+            return res.status(404).json({ error: 'Item could not be found'})
+        }
+        res.status(200).json({ data: result.rows[0] })
     }
-
-    //Returns an OK response otherwise
-    res.status(200).json({data: match})
-
+    //Error handling data can't be retrieved
+    catch (error) {
+        console.error(error)
+        res.status(500).json({ error: 'Failed to retrieve item data '})
+    }
 })
 
-// POST Request to create a new resource to be added to the array
-router.post('/', (req, res) => {
+//POST to create a new item in the database
+router.post('/', async (req,res) => {
+    try{
+        const {title, description, category } = req.body
 
-    //Declares the name of the new resource being added
-    const { title } = req.body
-    
-    //Checks to see if the input was empty
-    if (!title || title.trim() === ""){
-        return res.status(400).json({ error: "Validation Error: Object attribute 'title' is either missin or blank."})
+        //Invalid input handling for no title in item creation
+        if (!title || !title.trim()) {
+            return res.status(400).json({ error: 'Title is required'})
+        }
+
+        const result = await pool.query(
+            'INSERT INTO items (title, description, category) VALUES ($1, $2, $3) RETURNING *',
+            [title.trim(), description || null, category || null]
+        )
+
+        res.status(201).json({data: result.rows[0]})
     }
-
-    //Adds the new item to the array if its correct
-    const newItem = { id: Date.now().toString(), title: title.trim() }
-    resources.push(newItem)
-    res.status(201).json({ data: newItem})
-})
-
-// PUT Request to update an existing resourse using its id
-router.put('/:id', (req, res) => {
-
-    //sets the target id
-    const targetID = req.params.id
-
-    //Checks to see if it exists
-    const index = resources.findIndex(item => item.id === targetID)
-
-    //Conditional check for if index is not found
-    if (index === -1) {
-        return res.status(404).json({ error: "Requested resource not found"})
+    //Error Handling 
+    catch (error) {
+        console.error(error)
+        res.status(500).json({error: 'Failed to create requested item'})
     }
-
-    //Adds value to the array
-    resources[index] = {
-        ...resources[index],
-        ...req.body,
-        id: targetID
-    }
-
-    //Returns a 201 status to let the user know the requested resource has been successfully created
-    res.status(201).json({data: resources[index]}, " Successfully added to memory array")
-
-})
-
-// DELETE Request to delete a resourse using its id
-router.delete('/:id', (req, res) => {
-
-    //Creates target id to store requested id
-    const targetID = req.params.id
-
-    //Checks to see if the value exists
-    const index = resources.findIndex(item => item.id === targetID)
-
-    //Conditional check if not found
-    if (index === -1){
-        return res.status(404).json({ error: "Requested resource not found"})
-    }
-
-    //Deletes item from the array
-    const deletedItem = resources.splice(index, 1)
-
-    //Return Status to inform the user the resource has been successfully removed from the array
-    res.status(200).json({message: "Resource successfully deleted", data: deletedItem[0]})
-
 })
 
 
+//PUT request to update an existing item in the database
+router.put('/:id', async (req, res) => {
+    try{    
+        const {title, description, category} = req.body
 
+        if (!title || !title.trim()) {
+            return res.status(400).json({error: 'Title is required'})
+        }
 
+        const result = await pool.query(
+            'UPDATE items SET title = $1, description = $2, category = $3 WHERE id = $4 RETURNING *',
+            [title.trim(), description || null, category || null]
+        )
+        res.status(200).json({data: result.rows[0]})
+    }
+    catch (error) {
+        console.error(error)
+        res.status(500).json({error: 'Failed to update requested item'})
+    }
+})
 
-//Exports router file for use in the server file
+//DELETE request to delete an item from the database by its ID
+router.delete('/:id', async (req, res) => {
+    try{
+        const result = await pool.query(
+            'DELETE  FROM items WHERE id = $1 RETURNING *',
+            [req.params.id]
+        )
+
+        if (result.rows.length === 0){
+            return res.status(404).json({ error: 'Requested Item could not be found'})
+        }
+        res.status(200).json({message: 'Requested Item Successfully Deleted'})
+    }
+
+    catch (error){
+        console.error(error)
+        res.status(500).json({error: 'Failed to delete requested item'})
+    }
+})
+
+//Exports the router for use in the server.js file
 module.exports = router
